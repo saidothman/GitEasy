@@ -8,7 +8,9 @@
     "dev": "vite",
     "build": "vite build",
     "electron": "electron .",
-    "start": "vite build && electron ."
+    "start": "vite build && electron .",
+    "shortcut": "powershell -ExecutionPolicy Bypass -File ./create_desktop_shortcut.ps1",
+    "generate-icon": "powershell -ExecutionPolicy Bypass -File ./generate_icon.ps1"
   },
   "dependencies": {
     "@octokit/rest": "^20.1.1",

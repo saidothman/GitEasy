@@ -56,6 +56,7 @@ function createWindow() {
     minHeight: 600,
     title: 'GitEasy',
     autoHideMenuBar: true,
+    icon: path.join(__dirname, '../app_icon.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

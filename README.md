@@ -14,6 +14,7 @@ Built with **Electron**, **React**, **Vite**, and **Tailwind CSS**, GitEasy auto
 - 📦 **Repository Management**: Choose from existing GitHub repositories or create a new public/private repository directly inside the app.
 - ⚡ **Automated 6-Step Git Pipeline**: Automates `git init`, staging (`git add`), committing (`git commit`), branch initialization (`main`), remote binding, and pushing (`git push`).
 - 📊 **Real-time Progress Tracker**: Live progress updates, step indicators, error reporting, and celebratory confetti upon successful upload.
+- 🖥️ **Desktop Shortcut & Custom Icon**: Dedicated high-resolution application branding with one-click Windows Desktop shortcut creation for seamless launching.
 
 ---
 
@@ -48,16 +49,33 @@ Install all required NPM packages:
 npm install
 ```
 
-### Step 3: Launch the Application
+### Step 3: Create Desktop Shortcut (Recommended)
 
-To build the frontend UI and start the desktop Electron application:
+To generate a one-click desktop shortcut with the custom GitEasy icon on your Windows Desktop:
 
 ```bash
-npm run start
+npm run shortcut
 ```
 
-*Alternatively, for development mode with hot reloading:*
+*Alternatively, execute the PowerShell script directly:*
+```powershell
+powershell -ExecutionPolicy Bypass -File .\create_desktop_shortcut.ps1
+```
 
+This creates a `GitEasy` shortcut on your Desktop configured to start silently in the background using the custom multi-resolution icon.
+
+### Step 4: Launch the Application
+
+You can launch GitEasy through any of the following methods:
+
+- **Desktop Shortcut**: Double-click the **GitEasy** icon on your Desktop.
+- **Batch Launcher**: Double-click `run.bat` in the project root.
+- **NPM Script**: Run:
+  ```bash
+  npm run start
+  ```
+
+*For active development with Vite hot reloading:*
 ```bash
 # Terminal 1: Run Vite dev server
 npm run dev
@@ -110,10 +128,29 @@ The packaged installers will be generated inside the `dist-electron/` or `dist/`
 
 ---
 
+## 📜 Available Scripts
+
+| Command | Description |
+| :--- | :--- |
+| `npm run start` | Builds the Vite frontend and starts the Electron desktop app. |
+| `npm run dev` | Starts Vite development server with hot module replacement (HMR). |
+| `npm run build` | Compiles the React/Tailwind frontend into production assets in `dist/`. |
+| `npm run electron` | Launches the Electron desktop app directly. |
+| `npm run shortcut` | Creates or updates the `GitEasy` shortcut on your Windows Desktop. |
+| `npm run generate-icon` | Regenerates high-resolution `app_icon.png` and multi-resolution `app_icon.ico`. |
+
+---
+
 ## 📁 Project Structure
 
 ```
 GitEasy/
+├── app_icon.ico           # Multi-resolution application icon (16x16 to 256x256)
+├── app_icon.png           # High-resolution application logo (256x256)
+├── create_desktop_shortcut.ps1 # Script to generate Windows Desktop shortcut
+├── generate_icon.ps1      # Icon generation script
+├── launch.vbs             # Silent background launcher for desktop shortcut
+├── run.bat                # Quick batch file launcher
 ├── electron/              # Electron main process & IPC handlers
 │   ├── main.js            # Main process script & Git pipeline handler
 │   └── preload.js         # Context bridge for electronAPI
