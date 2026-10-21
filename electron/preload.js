@@ -14,4 +14,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('git:progress', subscription);
   },
   openExternal: (url) => ipcRenderer.invoke('shell:open-external', url),
+  checkGitignore: (folderPath) => ipcRenderer.invoke('folder:check-gitignore', folderPath),
+  createGitignore: (folderPath) => ipcRenderer.invoke('folder:create-gitignore', folderPath),
 });

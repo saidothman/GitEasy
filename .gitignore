@@ -1,2 +1,93 @@
+# Dependencies
 node_modules/
+jspm_packages/
+.pnp/
+.pnp.js
+
+# Production and build outputs
 dist/
+dist-ssr/
+dist-electron/
+build/
+out/
+release/
+*.local
+
+# Environment variables & secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+*.env
+
+# Logs and diagnostics
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Runtime data & process IDs
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Caches and temporary files
+.cache/
+.vite/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.prettiercache
+.tsbuildinfo
+temp/
+tmp/
+.temp/
+.tmp/
+
+# Testing & coverage
+coverage/
+*.lcov
+.nyc_output/
+
+# IDE and Editor configurations
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*~
+
+# Operating System files
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.fuse_hidden*
+.directory
+.Trash-*

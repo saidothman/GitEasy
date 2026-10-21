@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Octokit } from '@octokit/rest';
 import confetti from 'canvas-confetti';
-import { Folder, FolderOpen, ArrowRight, ExternalLink, Sparkles, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { Folder, FolderOpen, ArrowRight, ExternalLink, Sparkles, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
 
 import Header from './components/Header';
 import GitCheckModal from './components/GitCheckModal';
+import GitIgnoreModal from './components/GitIgnoreModal';
 import AuthView from './components/AuthView';
 import RepoSelector from './components/RepoSelector';
 import ProgressTracker from './components/ProgressTracker';
@@ -21,6 +22,10 @@ export default function App() {
   const [folderPath, setFolderPath] = useState('');
   const [selectedRepo, setSelectedRepo] = useState(null);
   const fileInputRef = useRef(null);
+
+  // .gitignore check states
+  const [hasGitignore, setHasGitignore] = useState(null);
+  const [showGitignoreModal, setShowGitignoreModal] = useState(false);
 
   // Execution state: 'idle' | 'uploading' | 'success' | 'error'
   const [executionState, setExecutionState] = useState('idle');
@@ -137,10 +142,63 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // 5. Trigger Upload Pipeline
+  // 5. Track if selected folder has .gitignore
+  useEffect(() => {
+    if (!folderPath || !window.electronAPI?.checkGitignore) {
+      setHasGitignore(null);
+      return;
+    }
+
+    let isSubscribed = true;
+    window.electronAPI.checkGitignore(folderPath).then((res) => {
+      if (isSubscribed) {
+        setHasGitignore(res?.exists ?? false);
+      }
+    }).catch((err) => {
+      console.warn('Error checking .gitignore:', err);
+      if (isSubscribed) setHasGitignore(null);
+    });
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [folderPath]);
+
+  const handleAddGitignoreInline = async () => {
+    if (!folderPath || !window.electronAPI?.createGitignore) return;
+    try {
+      const res = await window.electronAPI.createGitignore(folderPath);
+      if (res?.success) {
+        setHasGitignore(true);
+      }
+    } catch (err) {
+      console.error('Failed to create .gitignore:', err);
+    }
+  };
+
+  // 6. Trigger Upload Pipeline
   const handleStartUpload = async () => {
     if (!folderPath || !selectedRepo || !token) return;
 
+    // First check if folder has .gitignore
+    if (window.electronAPI?.checkGitignore) {
+      try {
+        const check = await window.electronAPI.checkGitignore(folderPath);
+        if (!check?.exists) {
+          setHasGitignore(false);
+          setShowGitignoreModal(true);
+          return;
+        }
+      } catch (err) {
+        console.warn('Error verifying .gitignore presence:', err);
+      }
+    }
+
+    // If .gitignore exists, execute pipeline directly
+    executeUploadPipeline({ addGitignore: false });
+  };
+
+  const executeUploadPipeline = async ({ addGitignore = false } = {}) => {
     setExecutionState('uploading');
     setActiveStepIndex(0);
     setRawError(null);
@@ -152,12 +210,18 @@ export default function App() {
     }
 
     try {
+      if (addGitignore && window.electronAPI?.createGitignore) {
+        await window.electronAPI.createGitignore(folderPath);
+        setHasGitignore(true);
+      }
+
       const result = await window.electronAPI.executeGitPipeline({
         folderPath,
         repoUrl: selectedRepo.html_url,
         repoOwner: selectedRepo.owner.login,
         repoName: selectedRepo.name,
         token,
+        addGitignore,
       });
 
       if (result?.success) {
@@ -175,6 +239,16 @@ export default function App() {
     }
   };
 
+  const handleModalAddAndUpload = async () => {
+    setShowGitignoreModal(false);
+    await executeUploadPipeline({ addGitignore: true });
+  };
+
+  const handleModalUploadWithout = () => {
+    setShowGitignoreModal(false);
+    executeUploadPipeline({ addGitignore: false });
+  };
+
   // Confetti Celebration
   const triggerCelebration = () => {
     confetti({
@@ -190,12 +264,16 @@ export default function App() {
     setUser(null);
     setFolderPath('');
     setSelectedRepo(null);
+    setHasGitignore(null);
+    setShowGitignoreModal(false);
     setExecutionState('idle');
   };
 
   const resetUpload = () => {
     setFolderPath('');
     setSelectedRepo(null);
+    setHasGitignore(null);
+    setShowGitignoreModal(false);
     setExecutionState('idle');
     setActiveStepIndex(0);
     setRawError(null);
@@ -212,6 +290,13 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col font-sans">
       {!gitInstalled && <GitCheckModal onRecheck={checkEnvironment} />}
+      <GitIgnoreModal
+        isOpen={showGitignoreModal}
+        folderPath={folderPath}
+        onAddAndUpload={handleModalAddAndUpload}
+        onUploadWithout={handleModalUploadWithout}
+        onClose={() => setShowGitignoreModal(false)}
+      />
 
       <Header user={user} onSignOut={handleSignOut} />
 
@@ -306,6 +391,36 @@ export default function App() {
                       <span>Browse...</span>
                     </button>
                   </div>
+
+                  {folderPath && hasGitignore !== null && (
+                    <div className="flex items-center justify-between text-xs px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800">
+                      {hasGitignore ? (
+                        <div className="flex items-center space-x-2 text-emerald-400">
+                          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                          <span>
+                            <strong className="text-emerald-300">.gitignore</strong> detected (safe to upload)
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center space-x-2 text-amber-400">
+                            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                            <span>
+                              No <strong className="text-amber-300">.gitignore</strong> found in this folder
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleAddGitignoreInline}
+                            className="text-sky-400 hover:text-sky-300 font-semibold hover:bg-sky-500/10 px-2.5 py-1 rounded-lg transition-colors border border-sky-500/20 text-xs flex items-center space-x-1"
+                          >
+                            <span>+ Add .gitignore</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <p className="text-xs text-slate-400">
                     GitEasy will execute the Git commands (<code className="text-sky-300">git init</code>, <code className="text-sky-300">add</code>, <code className="text-sky-300">commit</code>, <code className="text-sky-300">push</code>) directly inside this local folder directory.
                   </p>

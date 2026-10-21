@@ -137,6 +137,137 @@ ipcMain.handle('shell:open-external', (_event, url) => {
   shell.openExternal(url);
 });
 
+// Standard .gitignore template for GitEasy
+const DEFAULT_GITIGNORE_TEMPLATE = `# Dependencies
+node_modules/
+jspm_packages/
+.pnp/
+.pnp.js
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+
+# Production and build outputs
+dist/
+dist-ssr/
+dist-electron/
+build/
+out/
+release/
+target/
+*.local
+
+# Environment variables & secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+*.env
+
+# Logs and diagnostics
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Runtime data & process IDs
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Caches and temporary files
+.cache/
+.vite/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.prettiercache
+.tsbuildinfo
+temp/
+tmp/
+.temp/
+.tmp/
+
+# Testing & coverage
+coverage/
+*.lcov
+.nyc_output/
+
+# IDE and Editor configurations
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*~
+
+# Operating System files
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.fuse_hidden*
+.directory
+.Trash-*
+`;
+
+// Folder .gitignore check & creation handlers
+ipcMain.handle('folder:check-gitignore', async (_event, folderPath) => {
+  try {
+    if (!folderPath || !fs.existsSync(folderPath)) {
+      return { exists: false, error: 'Folder does not exist' };
+    }
+    const gitignorePath = path.join(folderPath, '.gitignore');
+    const exists = fs.existsSync(gitignorePath);
+    return { exists, path: gitignorePath };
+  } catch (err) {
+    console.error('Error checking .gitignore:', err);
+    return { exists: false, error: err.message };
+  }
+});
+
+ipcMain.handle('folder:create-gitignore', async (_event, folderPath) => {
+  try {
+    if (!folderPath || !fs.existsSync(folderPath)) {
+      return { success: false, error: 'Folder does not exist' };
+    }
+    const gitignorePath = path.join(folderPath, '.gitignore');
+    fs.writeFileSync(gitignorePath, DEFAULT_GITIGNORE_TEMPLATE, 'utf8');
+    return { success: true, path: gitignorePath };
+  } catch (err) {
+    console.error('Error creating .gitignore:', err);
+    return { success: false, error: err.message };
+  }
+});
+
 // OAuth Loopback Server Flow
 ipcMain.handle('auth:start-oauth', async () => {
   return new Promise((resolve, reject) => {
@@ -210,7 +341,7 @@ ipcMain.handle('auth:start-oauth', async () => {
 });
 
 // Feature D & E: Automated Git Pipeline Execution with step tracking
-ipcMain.handle('git:execute-pipeline', async (event, { folderPath, repoUrl, repoOwner, repoName, token }) => {
+ipcMain.handle('git:execute-pipeline', async (event, { folderPath, repoUrl, repoOwner, repoName, token, addGitignore = false }) => {
   const steps = [
     { title: 'Initializing Git Repository', cmd: 'git init' },
     { title: 'Staging files for commit', cmd: 'git add .' },
@@ -235,6 +366,18 @@ ipcMain.handle('git:execute-pipeline', async (event, { folderPath, repoUrl, repo
     const dirErr = `Folder directory does not exist or is invalid: "${folderPath || ''}". Please select a valid local folder path.`;
     sendProgress(0, 'error', dirErr, dirErr);
     return { success: false, failedStep: 0, error: dirErr };
+  }
+
+  // If requested, ensure .gitignore is created if not already present
+  if (addGitignore) {
+    const gitignorePath = path.join(folderPath, '.gitignore');
+    if (!fs.existsSync(gitignorePath)) {
+      try {
+        fs.writeFileSync(gitignorePath, DEFAULT_GITIGNORE_TEMPLATE, 'utf8');
+      } catch (err) {
+        console.error('Error auto-creating .gitignore during pipeline:', err);
+      }
+    }
   }
 
   // Pre-check if git CLI is accessible
